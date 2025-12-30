@@ -1,289 +1,189 @@
+#+title: org-generate.el
 #+author: conao3
-#+date: <2020-03-20 Fri>
 
 [[https://github.com/conao3/org-generate.el][https://raw.githubusercontent.com/conao3/files/master/blob/headers/png/org-generate.el.png]]
 [[https://github.com/conao3/org-generate.el/blob/master/LICENSE][https://img.shields.io/github/license/conao3/org-generate.el.svg?style=flat-square]]
 [[https://github.com/conao3/org-generate.el/releases][https://img.shields.io/github/tag/conao3/org-generate.el.svg?style=flat-square]]
 [[https://github.com/conao3/org-generate.el/actions][https://github.com/conao3/org-generate.el/workflows/Main%20workflow/badge.svg]]
-[[https://app.codacy.com/project/conao3/org-generate.el/dashboard][https://img.shields.io/codacy/grade/62a36f4f04524d5e8c758440e8071c45.svg?logo=codacy&style=flat-square]]
-[[https://www.patreon.com/conao3][https://img.shields.io/badge/patreon-become%20a%20patron-orange.svg?logo=patreon&style=flat-square]]
-[[https://twitter.com/conao_3][https://img.shields.io/badge/twitter-@conao__3-blue.svg?logo=twitter&style=flat-square]]
-[[https://conao3-support.slack.com/join/shared_invite/enQtNjUzMDMxODcyMjE1LWUwMjhiNTU3Yjk3ODIwNzAxMTgwOTkxNmJiN2M4OTZkMWY0NjI4ZTg4MTVlNzcwNDY2ZjVjYmRiZmJjZDU4MDE][https://img.shields.io/badge/chat-on_slack-blue.svg?logo=slack&style=flat-square]]
 
-* Table of Contents
-- [[#description][Description]]
-- [[#install][Install]]
-- [[#usage][Usage]]
-- [[#customize][Customize]]
-- [[#information][Information]]
-  - [[#community][Community]]
-  - [[#contribution][Contribution]]
-  - [[#migration][Migration]]
-  - [[#license][License]]
-  - [[#author][Author]]
-  - [[#contributors][Contributors]]
+Generate template files and directories from a single org document.
 
-* Description
-Generate template files/folders from one org document.
+* Overview
 
-* Install
+org-generate.el provides a simple and powerful way to define and generate file/folder templates using Org mode. Define your templates once in an org file, then generate them anywhere with a single command.
+
+Key features:
+- Define templates using familiar Org mode syntax
+- Support for single files, multiple files, or entire project structures
+- Variable substitution using Mustache templates
+- Interactive template selection with completion
+
+* Requirements
+
+- Emacs 26.1 or later
+- Org mode 9.3 or later
+- mustache.el 0.23 or later
+
+* Installation
+
 #+begin_src emacs-lisp
-  (leaf org-generate :ensure t)
+(use-package org-generate
+  :ensure t)
 #+end_src
 
-* Usage
-Full sample file is located project root, [[https://github.com/conao3/org-generate.el/blob/master/sample.org][sample.org]].
+Or with leaf:
 
-** Define one file template
-In template org file, the first level is the template's foldering, the second level is the template's name.
+#+begin_src emacs-lisp
+(leaf org-generate :ensure t)
+#+end_src
 
-For example, name the first level as =hugo=, and the second level as =page= or =single=, and you can select a expand target to choice names =hugo/page= or =hugo/single=.
+* Quick Start
 
-We start at the third level with the definition of a file template.
-In this chapter, we will take the simplest example, the case of a single file extraction.
+1. Create a template file at =~/.emacs.d/org-generate.org= (or customize =org-generate-file=)
+2. Define your templates using org headings
+3. Run =M-x org-generate= and select a template
+
+* Template Syntax
+
+Templates are organized in a two-level hierarchy:
+- *First level*: Category (e.g., =hugo=, =project=)
+- *Second level*: Template name (e.g., =page=, =single=)
+- *Third level and beyond*: File and directory definitions
+
+** Single File Template
 
 #+begin_src org
-  ,* hugo
-  ,** page
-  :PROPERTIES:
-  :org-generate-root: ~/dev/repos/hugo-src/content/blog/
-  :END:
+,* hugo
+,** page
+:PROPERTIES:
+:org-generate-root: ~/dev/repos/hugo-src/content/blog/
+:END:
 
-  # One file template example.
-  # To create file named as page in `org-generate-root`, do
-  #   M-x org-generate hugo/page
-  ,*** page.md
-  ,#+begin_src markdown
-    ---
-    title: "xxx"
-    date: xx/xx/xx
-    draft: true
-    ---
+,*** page.md
+,#+begin_src markdown
+---
+title: "New Post"
+date: 2024-01-01
+draft: true
+---
 
-    ### 1. First
-    xxxx
-
-    ### 2. Second
-    yyyy
-  ,#+end_src
-
-  ,** single
-  :PROPERTIES:
-  :org-generate-root: ~/dev/repos/hugo-src/content/blog/
-  :org-generate-variable: title date
-  :END:
-  ,*** {{title}}.md
-  ,#+begin_src markdown
-    ---
-    title: {{title}}
-    date: {{date}}
-    category: single
-    draft: true
-    ---
-
-    ### 1. First
-    xxxx
-
-    ### 2. Second
-    yyyy
-  ,#+end_src
+Content goes here.
+,#+end_src
 #+end_src
 
-In this example, two templates are defined, =hugo/page= and =hugo/single=.
+Run =M-x org-generate= and select =hugo/page= to create the file.
 
-The template =hugo/page= is simply saved file as-is in =~/dev/repos/hugo-src/= named as =page.md=.
+** Using Variables
 
-In this way, you can specify where to extract the template by default via setting =org-generate-root= in properties.
-If you omit it, you can specify it when you unpack the template.
-
-The template named =hugo/single= uses the Mustache template. If you use a mustache template, You need to enumerate variables in the =org-generate-variable= section.
-
-The special consideration is that the file name is defined as ={{title.md}}= is.
-This means that this template can be controll not only the content to be extracted, but also the name of the file to be extracted to.
-
-** Define multi file template
-The template definition of =org-genrate= is flexible and powerful, and it is possible to define multiple files and folders in a single template.
-This feature is useful when creating a new project.
+Use Mustache syntax for dynamic content. Declare variables in the =org-generate-variable= property:
 
 #+begin_src org
-  ,* project
-  ,** elisp
-  :PROPERTIES:
-  :org-generate-root: ~/dev/repos/
-  :org-generate-variable: pkg-name description
-  :END:
+,* hugo
+,** single
+:PROPERTIES:
+:org-generate-root: ~/dev/repos/hugo-src/content/blog/
+:org-generate-variable: title date
+:END:
 
-  # Multi file project template example.
-  # To create file in `org-generate-root`, do
-  #   M-x org-generate project/elisp
+,*** {{title}}.md
+,#+begin_src markdown
+---
+title: {{title}}
+date: {{date}}
+draft: true
+---
 
-  # You can use Mustache template in folder name, file contents.
-  # To use this feature, you should enumeration variable
-  # as `org-generate-variable` value.
-
-  # NOTE: If you want to create directory hierarchy,
-  #       Ensure heading name suffixed with '/'.
-
-  ,*** {{pkg-name}}.el/
-  ,**** .github/
-  ,***** workflows/
-  ,****** test.yml
-  ,#+begin_src yml
-  name: Main workflow
-  on: [push, pull_request]
-  ,#+end_src
-  ,**** .gitignore
-  ,#+begin_src gitignore
-  ## .gitignore
-
-  ,*-autoloads.el
-  ,*.elc
-  /.keg
-  ,#+end_src
-  ,**** Keg
-  ,#+begin_src keg
-    ;; Keg
-
-    (source gnu melpa)
-
-    (package
-     ({{pkg-name}}
-       (recipe . ({{pkg-name}} :fetcher github :repo "conao3/{{pkg-name}}.el"))))
-
-    (dev-dependency cort)
-  ,#+end_src
-  ,**** LICENSE
-  ,#+begin_src fundamental
-                        GNU GENERAL PUBLIC LICENSE
-                          Version 3, 29 June 2007
-
-    Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
-    Everyone is permitted to copy and distribute verbatim copies
-    of this license document, but changing it is not allowed.
-
-    ...
-
-  ,#+end_src
-  ,**** Makefile
-  ,#+begin_src makefile
-    ## Makefile
-
-    all:
-  ,#+end_src
-  ,**** README.org
-  ,#+begin_src org
-    ,,* Description
-    {{description}}.
-  ,#+end_src
-  ,**** {{pkg-name}}.el
-  ,#+begin_src elisp
-  ;;; {{pkg-name}}.el --- {{description}}  -*- lexical-binding: t; -*-
-
-  ;;; Code:
-
-  (defgroup {{pkg-name}} nil
-    "{{description}}."
-    :group 'convenience
-    :link '(url-link :tag "Github" "https://github.com/conao3/{{pkg-name}}.el"))
-
-  (provide '{{pkg-name}})
-  ;;; {{pkg-name}}.el ends here
-  ,#+end_src
-
-  ,**** {{pkg-name}}-test.el
-  ,#+begin_src elisp
-  ;;; {{pkg-name}}-tests.el --- Test definitions for {{pkg-name}}  -*- lexical-binding: t; -*-
-
-  ;;; Code:
-
-  (require 'cort)
-  (require '{{pkg-name}})
-
-  ;; (provide '{{pkg-name}}-tests)
-  ;;; {{pkg-name}}-tests.el ends here
-  ,#+end_src
+Content goes here.
+,#+end_src
 #+end_src
 
-This template is defined as =project/elisp=, and it creates below structure at once of the template expansion.
+When you generate this template, you'll be prompted for =title= and =date= values.
 
-- {{pkg-name}}.el/
-  - .github/
-    - workflows/
-      - test.yml
-  - .gitignore
-  - Keg
-  - LICENSE
-  - Makefile
-  - README.org
-  - {{pkg-name}}.el
-  - {{pkg-name}}-test.el
+** Multi-File Project Template
 
-Using this package, you can create a project in a generic way without having to language spesific tools. (For example =lein new=)
+Create entire project structures with a single template:
 
-** Generate files
-Run =M-x org-generate= once you have created a template with an org document. Then, select a template name and actually extract the template.
-When called interactively, it presents the folder where the template is extracted in a =dired=.
+#+begin_src org
+,* project
+,** elisp
+:PROPERTIES:
+:org-generate-root: ~/dev/repos/
+:org-generate-variable: pkg-name description
+:END:
 
-* Customize
-- org-generate-file :: The org file is used as template definition. \\
-  (default ={{user-emacs-directory}}/org-generate.org=)
-  #+HTML: <br>
-  =M-x org-generate-edit= to edit template file.
-- org-generate-with-export-as-org :: If non-nil, the target's definition is
-  exported as org beforehand. By exporting as org before generating it is
-  possible to use some additional org features like including files, macros
-  replacements and the noweb reference syntax. Some examples are shown in
-  [[with-export-examples.org]]. \\
-  (default =t=)
+,*** {{pkg-name}}.el/
+,**** .github/
+,***** workflows/
+,****** test.yml
+,#+begin_src yaml
+name: Main workflow
+on: [push, pull_request]
+,#+end_src
 
-* Information
-** Community
-All feedback and suggestions are welcome!
+,**** .gitignore
+,#+begin_src gitignore
+*-autoloads.el
+*.elc
+/.keg
+,#+end_src
 
-You can use github issues, but you can also use [[https://conao3-support.slack.com/join/shared_invite/enQtNjUzMDMxODcyMjE1LWUwMjhiNTU3Yjk3ODIwNzAxMTgwOTkxNmJiN2M4OTZkMWY0NjI4ZTg4MTVlNzcwNDY2ZjVjYmRiZmJjZDU4MDE][Slack]]
-if you want a more casual conversation.
+,**** README.org
+,#+begin_src org
+,,* Description
+{{description}}
+,#+end_src
 
-** Contribution
-We welcome PR!
+,**** {{pkg-name}}.el
+,#+begin_src emacs-lisp
+;;; {{pkg-name}}.el --- {{description}}  -*- lexical-binding: t; -*-
 
-*** Require tools for testing
-- keg
-  #+begin_src shell
-    cd ~/
-    hub clone conao3/keg .keg
-    export PATH="$HOME/.keg/bin:$PATH"
-  #+end_src
+;;; Code:
 
-*** Running test
-Below operation flow is recommended.
+(provide '{{pkg-name}})
+;;; {{pkg-name}}.el ends here
+,#+end_src
+#+end_src
+
+Note: Directory names must end with =/= to be recognized as directories.
+
+* Commands
+
+- =org-generate= - Generate files from a selected template
+- =org-generate-edit= - Open the template file for editing
+
+* Configuration
+
+| Variable                        | Description                           | Default                              |
+|---------------------------------+---------------------------------------+--------------------------------------|
+| =org-generate-file=            | Path to the template definition file  | =~/.emacs.d/org-generate.org=       |
+| =org-generate-with-export-as-org= | Export as org before generating    | =t=                                  |
+
+When =org-generate-with-export-as-org= is enabled, you can use additional Org features like file includes, macros, and noweb references in your templates.
+
+* Contributing
+
+Contributions are welcome. Please feel free to submit issues and pull requests.
+
+** Development Setup
+
+Install [[https://github.com/conao3/keg.el][keg]] for testing:
+
 #+begin_src shell
-  make                              # Install git-hooks in local .git
-
-  git branch [feature-branch]       # Create branch named [feature-branch]
-  git checkout [feature-branch]     # Checkout branch named [feature-branch]
-
-  # <edit loop>
-  emacs org-generate.el             # Edit something you want
-
-  make test                         # Test org-generate via multi version Emacs
-  git commit -am "brabra"           # Commit (auto-run test before commit)
-  # </edit loop>
-
-  hub fork                          # Create fork at GitHub
-  git push [user] [feature-branch]  # Push feature-branch to your fork
-  hub pull-request                  # Create pull-request
+cd ~/
+git clone https://github.com/conao3/keg .keg
+export PATH="$HOME/.keg/bin:$PATH"
 #+end_src
 
-** Migration
+** Running Tests
 
-** License
-#+begin_example
-  General Public License Version 3 (GPLv3)
-  Copyright (c) Naoya Yamashita - https://conao3.com
-  https://github.com/conao3/org-generate.el/blob/master/LICENSE
-#+end_example
+#+begin_src shell
+make test
+#+end_src
 
-** Author
-- Naoya Yamashita ([[https://github.com/conao3][conao3]])
+* License
 
-** Contributors
+GPL-3.0. See [[https://github.com/conao3/org-generate.el/blob/master/LICENSE][LICENSE]] for details.
+
+* Author
+
+Naoya Yamashita ([[https://github.com/conao3][conao3]])
